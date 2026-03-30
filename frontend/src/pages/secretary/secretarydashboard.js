@@ -1,0 +1,370 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import Sidebar from '../../components/sidebar';
+import { StatCard, Modal, Alert, ActivityFeed, FundHeader, Badge, PaymentMethodSelector, LoadingPage } from '../../components/shared';
+import { getMyFund, getFundTransactions, getFundMembers, getFundActivities, secretaryApprove, recordPayment } from '../../utils/api';
+import {
+  LayoutDashboard, Users, ClipboardList, Activity,
+  Plus, Check, RefreshCw, DollarSign, ArrowDownCircle, FileText
+} from 'lucide-react';
+
+const SecretaryDashboard = () => {
+  const [tab, setTab] = useState('overview');
+  const [fund, setFund] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showRecordPayment, setShowRecordPayment] = useState(false);
+  const [payForm, setPayForm] = useState({ memberId: '', amount: '', method: 'MTN Mobile Money', note: '' });
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
+  const [approveLoading, setApproveLoading] = useState(null);
+  const [recording, setRecording] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const fundRes = await getMyFund();
+      setFund(fundRes.data);
+      const [txRes, membersRes, actRes] = await Promise.all([
+        getFundTransactions(fundRes.data._id),
+        getFundMembers(fundRes.data._id),
+        getFundActivities(fundRes.data._id),
+      ]);
+      setTransactions(txRes.data);
+      setMembers(membersRes.data);
+      setActivities(actRes.data);
+    } catch (e) {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleApprove = async (txId) => {
+    setApproveLoading(txId);
+    try {
+      await secretaryApprove(txId);
+      fetchAll();
+    } catch (e) {}
+    setApproveLoading(null);
+  };
+
+  const handleRecordPayment = async (e) => {
+    e.preventDefault();
+    setFormError(''); setFormSuccess('');
+    if (!payForm.memberId) { setFormError('Please select a member'); return; }
+    if (!payForm.amount || isNaN(payForm.amount)) { setFormError('Please enter a valid amount'); return; }
+    setRecording(true);
+    try {
+      await recordPayment({ ...payForm, amount: Number(payForm.amount) });
+      setFormSuccess('Payment recorded successfully!');
+      setPayForm({ memberId: '', amount: '', method: 'MTN Mobile Money', note: '' });
+      fetchAll();
+      setTimeout(() => { setShowRecordPayment(false); setFormSuccess(''); }, 1500);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Failed to record payment');
+    }
+    setRecording(false);
+  };
+const pendingWithdrawals = transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending');
+  const contributions = transactions.filter(t => t.type === 'contribution');
+  const withdrawals = transactions.filter(t => t.type === 'withdrawal');
+
+  const navItems = [
+    {
+      label: 'Navigation',
+      items: [
+        { label: 'Overview', icon: <LayoutDashboard size={17} />, active: tab === 'overview', onClick: () => setTab('overview') },
+        {
+         label: 'Withdrawal Requests', icon: <ArrowDownCircle size={17} />,
+         active: tab === 'withdrawals', onClick: () => setTab('withdrawals'),
+         badge: transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending' && !t.secretaryApproved).length || null
+        },
+        { label: 'Member Records', icon: <Users size={17} />, active: tab === 'members', onClick: () => setTab('members') },
+        { label: 'All Transactions', icon: <FileText size={17} />, active: tab === 'transactions', onClick: () => setTab('transactions') },
+        { label: 'Activities', icon: <Activity size={17} />, active: tab === 'activities', onClick: () => setTab('activities') },
+      ]
+    }
+  ];
+
+  if (loading) return (
+    <div className="app-layout">
+      <Sidebar navItems={navItems} fundName={fund?.name} />
+      <div className="main-content"><LoadingPage /></div>
+    </div>
+  );
+
+  return (
+    <div className="app-layout">
+      <Sidebar navItems={navItems} fundName={fund?.name} />
+      <div className="main-content">
+        <div className="page">
+
+          <div className="page-header">
+            <div className="breadcrumb">
+              <span>Secretary</span>
+              <span className="breadcrumb-sep">/</span>
+              {fund?.name}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <div>
+                <h1 className="page-title">
+                  {tab === 'overview' ? 'Secretary Dashboard' :
+                    tab === 'withdrawals' ? 'Withdrawal Requests' :
+                      tab === 'members' ? 'Member Records' :
+                        tab === 'transactions' ? 'Transaction History' : 'Activity Log'}
+                </h1>
+                <p className="page-subtitle">
+                  {tab === 'overview' ? 'Fund records and payment management' :
+                    tab === 'withdrawals' ? 'Review and approve member withdrawal requests' :
+                      tab === 'members' ? 'View member contribution records' :
+                        tab === 'transactions' ? 'Full transaction history' : 'Recent fund activities'}
+                </p>
+              </div>
+              <button className="btn btn-primary" onClick={() => setShowRecordPayment(true)}>
+                <Plus size={15} /> Record Payment
+              </button>
+            </div>
+          </div>
+
+          {fund && <FundHeader name={fund.name} balance={fund.totalBalance} description={fund.description} />}
+
+          {/* Overview */}
+          {tab === 'overview' && (
+            <>
+              <div className="stats-grid">
+                <StatCard label="Total Members" value={members.length} icon={<Users size={22} />} color="blue" />
+                <StatCard label="Contributions" value={`${contributions.reduce((s, t) => s + t.amount, 0).toLocaleString()} RWF`} icon={<DollarSign size={22} />} color="green" />
+                <StatCard label="Withdrawals" value={`${withdrawals.filter(t => t.status === 'approved').reduce((s, t) => s + t.amount, 0).toLocaleString()} RWF`} icon={<ArrowDownCircle size={22} />} color="red" />
+                <StatCard label="Pending Requests" value={pendingWithdrawals.length} icon={<ClipboardList size={22} />} color="gold"
+                  sub={pendingWithdrawals.length > 0 ? 'Need your approval' : 'All processed'} />
+              </div>
+
+              <div className="grid-2-1">
+                <div className="card">
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Recent Transactions</h3>
+                  {transactions.slice(0, 8).map(tx => (
+                    <div key={tx._id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 0', borderBottom: '1px solid var(--border-soft)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '8px',
+                          background: tx.type === 'contribution' ? 'var(--green-dim)' : 'var(--red-dim)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: tx.type === 'contribution' ? 'var(--green)' : 'var(--red)'
+                        }}>
+                          {tx.type === 'contribution' ? <DollarSign size={14} /> : <ArrowDownCircle size={14} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 600 }}>{tx.member?.name}</div>
+                          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                            {new Date(tx.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700,
+                          color: tx.type === 'contribution' ? 'var(--green)' : 'var(--red)'
+                        }}>
+                          {tx.type === 'contribution' ? '+' : '-'}{tx.amount.toLocaleString()}
+                        </span>
+                        <Badge status={tx.status} />
+                      </div>
+                    </div>
+                  ))}
+                  {transactions.length === 0 && <div className="empty-state"><div className="empty-icon">💸</div><div className="empty-title">No transactions yet</div></div>}
+                </div>
+
+                <div className="card">
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Recent Activities</h3>
+                  <ActivityFeed activities={activities.slice(0, 8)} loading={false} />
+                </div>
+              </div>
+            </>
+          )}
+
+         {/* Withdrawals Tab */}
+{tab === 'withdrawals' && (
+  <div className="card">
+    {transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending' && !t.secretaryApproved).length === 0 ? (
+      <div className="empty-state">
+        <div className="empty-icon">✅</div>
+        <div className="empty-title">No pending requests</div>
+        <div className="empty-sub">All withdrawal requests have been processed</div>
+      </div>
+    ) : (
+      transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending' && !t.secretaryApproved).map(tx => (
+        <div key={tx._id} style={{
+          padding: '18px', marginBottom: '12px',
+          background: 'var(--surface2)', borderRadius: 'var(--radius)',
+          border: '1px solid var(--border-soft)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '50%',
+                background: 'var(--gold-dim)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontFamily: 'var(--font-display)',
+                fontSize: '16px', color: 'var(--gold)', fontWeight: 700
+              }}>{tx.member?.name?.[0]?.toUpperCase()}</div>
+              <div>
+                <div style={{ fontWeight: 600 }}>{tx.member?.name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Ref: {tx.reference}</div>
+                {tx.reason && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Reason: {tx.reason}</div>}
+              </div>
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700, color: 'var(--gold)' }}>
+              {tx.amount.toLocaleString()} RWF
+            </div>
+            <button
+              className="btn btn-success"
+              onClick={() => handleApprove(tx._id)}
+              disabled={approveLoading === tx._id}
+            >
+              {approveLoading === tx._id
+                ? <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} />
+                : <><Check size={14} /> Approve & Forward to President</>}
+            </button>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginTop: '10px' }}>
+            Requested {new Date(tx.createdAt).toLocaleString()}
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
+          {/* Members Tab */}
+          {tab === 'members' && (
+            <div className="card">
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Balance</th>
+                      <th>Total Contributed</th>
+                      <th>Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map(m => (
+                      <tr key={m._id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '34px', height: '34px', borderRadius: '50%',
+                              background: 'var(--gold-dim)', display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', fontFamily: 'var(--font-display)',
+                              fontSize: '13px', color: 'var(--gold)', fontWeight: 700
+                            }}>{m.name?.[0]?.toUpperCase()}</div>
+                            {m.name}
+                          </div>
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{m.email}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{m.phone || '—'}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--green)', fontWeight: 600 }}>
+                          {(m.balance || 0).toLocaleString()} RWF
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--gold)' }}>
+                          {(m.totalContributed || 0).toLocaleString()} RWF
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                          {new Date(m.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Transactions Tab */}
+          {tab === 'transactions' && (
+            <div className="card">
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr><th>Member</th><th>Type</th><th>Amount</th><th>Method</th><th>Ref</th><th>Status</th><th>Date</th></tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map(tx => (
+                      <tr key={tx._id}>
+                        <td>{tx.member?.name}</td>
+                        <td><Badge status={tx.type} /></td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: tx.type === 'contribution' ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                          {tx.type === 'contribution' ? '+' : '-'}{tx.amount.toLocaleString()} RWF
+                        </td>
+                        <td style={{ fontSize: '12px' }}>{tx.method}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-dim)' }}>{tx.reference}</td>
+                        <td><Badge status={tx.status} /></td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{new Date(tx.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Activities Tab */}
+          {tab === 'activities' && (
+            <div className="card">
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Activity Log</h3>
+              <ActivityFeed activities={activities} loading={false} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Record Payment Modal */}
+      {showRecordPayment && (
+        <Modal
+          title="Record Member Payment"
+          subtitle="Manually record a contribution payment for a member"
+          onClose={() => { setShowRecordPayment(false); setFormError(''); setFormSuccess(''); }}
+        >
+          <form onSubmit={handleRecordPayment}>
+            {formError && <Alert type="error">{formError}</Alert>}
+            {formSuccess && <Alert type="success">{formSuccess}</Alert>}
+            <div className="form-group">
+              <label className="form-label">Select Member *</label>
+              <select className="form-select" value={payForm.memberId} onChange={e => setPayForm({ ...payForm, memberId: e.target.value })} required>
+                <option value="">— Choose member —</option>
+                {members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Amount (RWF) *</label>
+              <input className="form-input" type="number" placeholder="0" min="1"
+                value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Payment Method</label>
+              <PaymentMethodSelector selected={payForm.method} onChange={m => setPayForm({ ...payForm, method: m })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Note (Optional)</label>
+              <input className="form-input" placeholder="Any additional notes..."
+                value={payForm.note} onChange={e => setPayForm({ ...payForm, note: e.target.value })} />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-outline" onClick={() => setShowRecordPayment(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={recording}>
+                {recording ? 'Recording...' : <><Check size={15} /> Record Payment</>}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+export default SecretaryDashboard;

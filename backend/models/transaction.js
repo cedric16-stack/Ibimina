@@ -9,7 +9,7 @@ const transactionSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   reason: { type: String, default: '' },
   rejectionReason: { type: String, default: '' },
-  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
   secretaryApproved: { type: Boolean, default: false },
   presidentApproved: { type: Boolean, default: false },
   reference: { type: String, default: '' },

@@ -30,7 +30,6 @@ memberRouter.get('/', protect, authorize('admin'), async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 memberRouter.post('/create', protect, authorize('admin', 'president'), async (req, res) => {
   try {
     const { name, email, password, phone, age, gender, role, fundId } = req.body;

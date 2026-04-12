@@ -18,12 +18,15 @@ router.get('/debug', async (req, res) => {
 });
 router.get('/fund/:fundId', protect, async (req, res) => {
   try {
+    console.log('Fetching transactions for fund:', req.params.fundId);
     const transactions = await Transaction.find({ fund: req.params.fundId })
       .populate('member', 'name email photo')
       .populate('approvedBy', 'name')
       .sort('-createdAt');
+    console.log('Found transactions:', transactions.length);
     res.json(transactions);
   } catch (err) {
+    console.error('Transaction error:', err.message);
     res.status(500).json({ message: err.message });
   }
 });

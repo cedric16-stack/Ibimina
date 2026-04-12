@@ -25,6 +25,8 @@ app.use('/api/members', require('./routes/members'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/activities', require('./routes/activities'));
 
+
+
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ibimina';
 

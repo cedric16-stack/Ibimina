@@ -12,7 +12,7 @@ const PresidentDashboard = () => {
   const [tab, setTab] = useState('overview');
   const [fund, setFund] = useState(null);
   const [termsForm, setTermsForm] = useState({ termsAndConditions: '', loanDefaultRules: '' });
-const [savingTerms, setSavingTerms] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,24 +27,24 @@ const [savingTerms, setSavingTerms] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
 
   const fetchFund = useCallback(async () => {
-  setLoading(true);
-  try {
-    const res = await getMyFund();
-    setFund(res.data);
-    setDesc(res.data.description || '');
-    setTermsForm({
-      termsAndConditions: res.data.termsAndConditions || '',
-      loanDefaultRules: res.data.loanDefaultRules || ''
-    });
-  } catch (e) {}
-  setLoading(false);
-}, []);
+    setLoading(true);
+    try {
+      const res = await getMyFund();
+      setFund(res.data);
+      setDesc(res.data.description || '');
+      setTermsForm({
+        termsAndConditions: res.data.termsAndConditions || '',
+        loanDefaultRules: res.data.loanDefaultRules || ''
+      });
+    } catch (e) {}
+    setLoading(false);
+  }, []);
 
   const fetchTransactions = useCallback(async (fundId) => {
     setTxLoading(true);
     try {
       const res = await getFundTransactions(fundId);
-      setTransactions(res.data.filter(t => t.type === 'withdrawal'));
+      setTransactions(res.data.filter(t => t.type === 'withdrawal' || t.type === 'loan'));
     } catch (e) {}
     setTxLoading(false);
   }, []);
@@ -68,18 +68,18 @@ const [savingTerms, setSavingTerms] = useState(false);
   }, [fund, fetchTransactions, fetchActivities]);
 
   const handleAddUser = async (e) => {
-  e.preventDefault();
-  setFormError(''); setFormSuccess('');
-  try {
-    await createMemberByPresident(addForm);
-    setFormSuccess(`${addForm.role === 'secretary' ? 'Secretary' : 'Member'} added successfully!`);
-    setAddForm({ name: '', email: '', phone: '', address: '', password: '', role: 'member' });
-    fetchFund();
-    setTimeout(() => { setShowAddUser(false); setFormSuccess(''); }, 1500);
-  } catch (err) {
-    setFormError(err.response?.data?.message || 'Failed to add user');
-  }
-};
+    e.preventDefault();
+    setFormError(''); setFormSuccess('');
+    try {
+      await createMemberByPresident(addForm);
+      setFormSuccess(`${addForm.role === 'secretary' ? 'Secretary' : 'Member'} added successfully!`);
+      setAddForm({ name: '', email: '', phone: '', address: '', password: '', role: 'member' });
+      fetchFund();
+      setTimeout(() => { setShowAddUser(false); setFormSuccess(''); }, 1500);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Failed to add user');
+    }
+  };
 
   const handleRemoveUser = async (userId, name) => {
     if (!window.confirm(`Remove ${name} from the fund?`)) return;
@@ -109,18 +109,20 @@ const [savingTerms, setSavingTerms] = useState(false);
       setFormError('Failed to update description');
     }
   };
-const handleSaveTerms = async () => {
-  setSavingTerms(true);
-  try {
-    await updateFundTerms(fund._id, termsForm);
-    setFormSuccess('Terms updated successfully!');
-    fetchFund();
-    setTimeout(() => setFormSuccess(''), 2000);
-  } catch (e) {
-    setFormError('Failed to update terms');
-  }
-  setSavingTerms(false);
-};
+
+  const handleSaveTerms = async () => {
+    setSavingTerms(true);
+    try {
+      await updateFundTerms(fund._id, termsForm);
+      setFormSuccess('Terms updated successfully!');
+      fetchFund();
+      setTimeout(() => setFormSuccess(''), 2000);
+    } catch (e) {
+      setFormError('Failed to update terms');
+    }
+    setSavingTerms(false);
+  };
+
   const pendingWithdrawals = transactions.filter(t => t.status === 'pending' && t.secretaryApproved);
   const allMembers = [
     ...(fund?.secretary ? [{ ...fund.secretary, role: 'secretary' }] : []),
@@ -134,14 +136,14 @@ const handleSaveTerms = async () => {
         { label: 'Overview', icon: <LayoutDashboard size={17} />, active: tab === 'overview', onClick: () => setTab('overview') },
         { label: 'Members', icon: <Users size={17} />, active: tab === 'members', onClick: () => setTab('members') },
         {
-          label: 'Withdrawals', icon: <ArrowDownCircle size={17} />, active: tab === 'withdrawals',
+          label: 'Loan Requests', icon: <ArrowDownCircle size={17} />, active: tab === 'withdrawals',
           onClick: () => setTab('withdrawals'),
           badge: pendingWithdrawals.length || null
         },
         { label: 'Transactions', icon: <FileText size={17} />, active: tab === 'transactions', onClick: () => setTab('transactions') },
         { label: 'Activities', icon: <Activity size={17} />, active: tab === 'activities', onClick: () => setTab('activities') },
-         { label: 'Terms & Conditions', icon: <FileText size={17} />, active: tab === 'terms', onClick: () => setTab('terms') },
-        ]
+        { label: 'Terms & Conditions', icon: <FileText size={17} />, active: tab === 'terms', onClick: () => setTab('terms') },
+      ]
     }
   ];
 
@@ -183,15 +185,19 @@ const handleSaveTerms = async () => {
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <div>
-                <h1 className="page-title">{tab === 'overview' ? 'Fund Overview' :
-                  tab === 'members' ? 'Member Management' :
-                    tab === 'withdrawals' ? 'Withdrawal Requests' :
-                      tab === 'transactions' ? 'All Transactions' : 'Activity Log'}</h1>
+                <h1 className="page-title">
+                  {tab === 'overview' ? 'Fund Overview' :
+                    tab === 'members' ? 'Member Management' :
+                      tab === 'withdrawals' ? 'Loan Requests' :
+                        tab === 'transactions' ? 'All Transactions' :
+                          tab === 'terms' ? 'Terms & Conditions' : 'Activity Log'}
+                </h1>
                 <p className="page-subtitle">
                   {tab === 'overview' ? 'Monitor fund health and recent activities' :
                     tab === 'members' ? 'Add, remove and manage fund members' :
-                      tab === 'withdrawals' ? 'Approve or reject member withdrawal requests' :
-                        tab === 'transactions' ? 'Full transaction history' : 'Recent fund activities'}
+                      tab === 'withdrawals' ? 'Approve or reject member loan requests' :
+                        tab === 'transactions' ? 'Full transaction history' :
+                          tab === 'terms' ? 'Set fund rules and loan default policies' : 'Recent fund activities'}
                 </p>
               </div>
               {tab === 'members' && (
@@ -202,7 +208,6 @@ const handleSaveTerms = async () => {
             </div>
           </div>
 
-          {/* Fund Header Banner */}
           <FundHeader
             name={fund.name}
             balance={fund.totalBalance}
@@ -254,7 +259,6 @@ const handleSaveTerms = async () => {
                   ))}
                   {allMembers.length === 0 && <div className="empty-state"><div className="empty-icon">👥</div><div className="empty-title">No members yet</div></div>}
                 </div>
-
                 <div className="card">
                   <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Recent Activity</h3>
                   <ActivityFeed activities={activities.slice(0, 6)} loading={actLoading} />
@@ -324,20 +328,20 @@ const handleSaveTerms = async () => {
             </div>
           )}
 
-          {/* Withdrawals Tab */}
+          {/* Loan Requests Tab */}
           {tab === 'withdrawals' && (
             <div>
               {pendingWithdrawals.length > 0 && (
                 <div className="alert alert-info" style={{ marginBottom: '20px' }}>
-                  {pendingWithdrawals.length} withdrawal request(s) awaiting your approval
+                  {pendingWithdrawals.length} loan request(s) awaiting your approval
                 </div>
               )}
               <div className="card">
                 {transactions.filter(t => t.status === 'pending').length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-icon">✅</div>
-                    <div className="empty-title">No pending withdrawals</div>
-                    <div className="empty-sub">All withdrawal requests have been processed</div>
+                    <div className="empty-title">No pending loan requests</div>
+                    <div className="empty-sub">All requests have been processed</div>
                   </div>
                 ) : (
                   <div>
@@ -361,6 +365,11 @@ const handleSaveTerms = async () => {
                                 Ref: {tx.reference}
                               </div>
                               {tx.reason && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Reason: {tx.reason}</div>}
+                              {tx.loanDuration && (
+                                <div style={{ fontSize: '12px', color: 'var(--gold)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                                  Duration: {tx.loanDuration} months · Interest: {tx.interestRate}% · Total: {tx.totalRepayable?.toLocaleString()} RWF
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div style={{ textAlign: 'center' }}>
@@ -374,23 +383,19 @@ const handleSaveTerms = async () => {
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              className="btn btn-success btn-sm"
+                            <button className="btn btn-success btn-sm"
                               onClick={() => handlePresidentAction(tx._id, 'approve')}
-                              disabled={actionLoading === tx._id + 'approve'}
-                            >
+                              disabled={actionLoading === tx._id + 'approve'}>
                               {actionLoading === tx._id + 'approve'
                                 ? <RefreshCw size={13} style={{ animation: 'spin 0.8s linear infinite' }} />
                                 : <><Check size={13} /> Approve</>}
                             </button>
-                            <button
-                              className="btn btn-danger btn-sm"
+                            <button className="btn btn-danger btn-sm"
                               onClick={() => {
                                 const r = window.prompt('Reason for rejection (optional):');
                                 if (r !== null) handlePresidentAction(tx._id, 'reject', r);
                               }}
-                              disabled={actionLoading === tx._id + 'reject'}
-                            >
+                              disabled={actionLoading === tx._id + 'reject'}>
                               {actionLoading === tx._id + 'reject'
                                 ? <RefreshCw size={13} style={{ animation: 'spin 0.8s linear infinite' }} />
                                 : <><X size={13} /> Reject</>}
@@ -456,122 +461,145 @@ const handleSaveTerms = async () => {
               <ActivityFeed activities={activities} loading={actLoading} />
             </div>
           )}
-        </div>
-      </div>
-{/* Add User Modal */}
-{showAddUser && (
-  <Modal
-    title="Add Member or Secretary"
-    subtitle="Fill in their details — they'll receive credentials to login"
-    onClose={() => { setShowAddUser(false); setFormError(''); setFormSuccess(''); }}
-  >
-    <form onSubmit={handleAddUser}>
-      {formError && <Alert type="error">{formError}</Alert>}
-      {formSuccess && <Alert type="success">{formSuccess}</Alert>}
-      <div className="form-group">
-        <label className="form-label">Full Name *</label>
-        <input className="form-input" placeholder="John Doe"
-          value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} required />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Email *</label>
-        <input className="form-input" type="email" placeholder="john@email.com"
-          value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} required />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Phone Number</label>
-        <input className="form-input" placeholder="+250 7XX XXX XXX"
-          value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Address</label>
-        <input className="form-input" placeholder="Kigali, Rwanda"
-          value={addForm.address} onChange={e => setAddForm({ ...addForm, address: e.target.value })} />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Password</label>
-        <input className="form-input" placeholder="Default: ibimina123"
-          value={addForm.password} onChange={e => setAddForm({ ...addForm, password: e.target.value })} />
-        <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '6px', fontFamily: 'var(--font-mono)' }}>
-          Leave empty to use default password: ibimina123
-        </div>
-      </div>
-      <div className="form-group">
-        <label className="form-label">Role</label>
-        <select className="form-select" value={addForm.role} onChange={e => setAddForm({ ...addForm, role: e.target.value })}>
-          <option value="member">Member</option>
-          <option value="secretary">Secretary</option>
-        </select>
-      </div>
-      <div className="modal-actions">
-        <button type="button" className="btn btn-outline" onClick={() => setShowAddUser(false)}>Cancel</button>
-        <button type="submit" className="btn btn-primary"><Plus size={15} /> Add User</button>
-      </div>
-    </form>
-  </Modal>
-)}
-      
-      {/* Terms Tab */}
-{tab === 'terms' && (
-  <div className="grid-2">
-    <div className="card">
-      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>
-        Terms & Conditions
-      </h3>
-      {formError && <Alert type="error">{formError}</Alert>}
-      {formSuccess && <Alert type="success">{formSuccess}</Alert>}
-      <div className="form-group">
-        <label className="form-label">Terms & Conditions</label>
-        <textarea className="form-textarea" rows={8}
-          placeholder="Enter fund terms and conditions..."
-          value={termsForm.termsAndConditions}
-          onChange={e => setTermsForm({ ...termsForm, termsAndConditions: e.target.value })} />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Loan Default Rules</label>
-        <textarea className="form-textarea" rows={5}
-          placeholder="Enter rules for loan defaults e.g. penalties, consequences..."
-          value={termsForm.loanDefaultRules}
-          onChange={e => setTermsForm({ ...termsForm, loanDefaultRules: e.target.value })} />
-      </div>
-      <button className="btn btn-primary" onClick={handleSaveTerms} disabled={savingTerms}
-        style={{ width: '100%', justifyContent: 'center' }}>
-        {savingTerms ? 'Saving...' : <><FileText size={15} /> Save Terms</>}
-      </button>
-    </div>
 
-    <div className="card">
-      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>
-        Preview
-      </h3>
-      {fund.termsAndConditions ? (
-        <div>
-          <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
-            Terms & Conditions
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
-            {fund.termsAndConditions}
-          </div>
+          {/* Terms Tab */}
+          {tab === 'terms' && (
+            <div className="grid-2">
+              <div className="card">
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>
+                  Terms & Conditions
+                </h3>
+                {formError && <Alert type="error">{formError}</Alert>}
+                {formSuccess && <Alert type="success">{formSuccess}</Alert>}
+                <div className="form-group">
+                  <label className="form-label">Terms & Conditions</label>
+                  <textarea className="form-textarea" rows={8}
+                    placeholder="Enter fund terms and conditions..."
+                    value={termsForm.termsAndConditions}
+                    onChange={e => setTermsForm({ ...termsForm, termsAndConditions: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Loan Default Rules</label>
+                  <textarea className="form-textarea" rows={5}
+                    placeholder="Enter rules for loan defaults e.g. penalties, consequences..."
+                    value={termsForm.loanDefaultRules}
+                    onChange={e => setTermsForm({ ...termsForm, loanDefaultRules: e.target.value })} />
+                </div>
+                <button className="btn btn-primary" onClick={handleSaveTerms} disabled={savingTerms}
+                  style={{ width: '100%', justifyContent: 'center' }}>
+                  {savingTerms ? 'Saving...' : <><FileText size={15} /> Save Terms</>}
+                </button>
+              </div>
+              <div className="card">
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>
+                  Preview
+                </h3>
+                {fund.termsAndConditions ? (
+                  <div>
+                    <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                      Terms & Conditions
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
+                      {fund.termsAndConditions}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-icon">📋</div>
+                    <div className="empty-title">No terms set yet</div>
+                  </div>
+                )}
+                {fund.loanDefaultRules && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                      Loan Default Rules
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                      {fund.loanDefaultRules}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
-      ) : (
-        <div className="empty-state">
-          <div className="empty-icon">📋</div>
-          <div className="empty-title">No terms set yet</div>
-        </div>
+      </div>
+
+      {/* Add User Modal */}
+      {showAddUser && (
+        <Modal
+          title="Add Member or Secretary"
+          subtitle="Fill in their details — they'll receive credentials to login"
+          onClose={() => { setShowAddUser(false); setFormError(''); setFormSuccess(''); }}
+        >
+          <form onSubmit={handleAddUser}>
+            {formError && <Alert type="error">{formError}</Alert>}
+            {formSuccess && <Alert type="success">{formSuccess}</Alert>}
+            <div className="form-group">
+              <label className="form-label">Full Name *</label>
+              <input className="form-input" placeholder="John Doe"
+                value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email *</label>
+              <input className="form-input" type="email" placeholder="john@email.com"
+                value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Phone Number</label>
+              <input className="form-input" placeholder="+250 7XX XXX XXX"
+                value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Address</label>
+              <input className="form-input" placeholder="Kigali, Rwanda"
+                value={addForm.address} onChange={e => setAddForm({ ...addForm, address: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input className="form-input" placeholder="Default: ibimina123"
+                value={addForm.password} onChange={e => setAddForm({ ...addForm, password: e.target.value })} />
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '6px', fontFamily: 'var(--font-mono)' }}>
+                Leave empty to use default password: ibimina123
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <select className="form-select" value={addForm.role} onChange={e => setAddForm({ ...addForm, role: e.target.value })}>
+                <option value="member">Member</option>
+                <option value="secretary">Secretary</option>
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-outline" onClick={() => setShowAddUser(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary"><Plus size={15} /> Add User</button>
+            </div>
+          </form>
+        </Modal>
       )}
-      {fund.loanDefaultRules && (
-        <div>
-          <div style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
-            Loan Default Rules
+
+      {/* Edit Description Modal */}
+      {showEditDesc && (
+        <Modal
+          title="Fund Description"
+          subtitle="Add a description to help members understand the fund's purpose"
+          onClose={() => { setShowEditDesc(false); setFormError(''); setFormSuccess(''); }}
+        >
+          {formError && <Alert type="error">{formError}</Alert>}
+          {formSuccess && <Alert type="success">{formSuccess}</Alert>}
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea className="form-textarea" placeholder="Describe the fund's purpose, rules, goals..."
+              value={desc} onChange={e => setDesc(e.target.value)} rows={5} />
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-            {fund.loanDefaultRules}
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={() => setShowEditDesc(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleSaveDesc}><Edit3 size={15} /> Save Description</button>
           </div>
-        </div>
+        </Modal>
       )}
-    </div>
-  </div>
-)}
+
     </div>
   );
 };

@@ -32,32 +32,23 @@ const PrivateRoute = ({ children, roles }) => {
   return children;
 };
 
+const getHome = (role) => {
+  if (role === 'admin') return '/admin';
+  if (role === 'president') return '/president';
+  if (role === 'secretary') return '/secretary';
+  return '/member';
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/login" element={
-        user
-          ? <Navigate to={
-            user.role === 'admin' ? '/admin' :
-            user.role === 'president' ? '/president' :
-            user.role === 'secretary' ? '/secretary' : '/member'
-          } replace />
-          : <LoginPage />
-      } />
+      <Route path="/login" element={user ? <Navigate to={getHome(user.role)} replace /> : <LoginPage />} />
       <Route path="/admin" element={<PrivateRoute roles={['admin']}><AdminDashboard /></PrivateRoute>} />
       <Route path="/president" element={<PrivateRoute roles={['president']}><PresidentDashboard /></PrivateRoute>} />
       <Route path="/secretary" element={<PrivateRoute roles={['secretary']}><SecretaryDashboard /></PrivateRoute>} />
       <Route path="/member" element={<PrivateRoute roles={['member']}><MemberDashboard /></PrivateRoute>} />
-      <Route path="/" element={
-        user
-          ? <Navigate to={
-            user.role === 'admin' ? '/admin' :
-            user.role === 'president' ? '/president' :
-            user.role === 'secretary' ? '/secretary' : '/member'
-          } replace />
-          : <Navigate to="/login" replace />
-      } />
+      <Route path="/" element={user ? <Navigate to={getHome(user.role)} replace /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

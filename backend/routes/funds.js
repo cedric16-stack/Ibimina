@@ -59,15 +59,6 @@ router.get('/my', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/description', protect, authorize('president'), async (req, res) => {
-  try {
-    const fund = await Fund.findByIdAndUpdate(req.params.id, { description: req.body.description }, { new: true });
-    await Activity.create({ fund: fund._id, user: req.user._id, action: 'Fund description updated', type: 'fund' });
-    res.json(fund);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 router.put('/:id/terms', protect, authorize('president'), async (req, res) => {
   try {
     const { termsAndConditions, loanDefaultRules } = req.body;
@@ -82,6 +73,25 @@ router.put('/:id/terms', protect, authorize('president'), async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+router.put('/:id/description', protect, authorize('president'), async (req, res) => {
+  try {
+    const fund = await Fund.findByIdAndUpdate(
+      req.params.id, 
+      { description: req.body.description }, 
+      { new: true }
+    );
+    await Activity.create({ 
+      fund: fund._id, 
+      user: req.user._id, 
+      action: 'Fund description updated', 
+      type: 'fund' 
+    });
+    res.json(fund);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/:id/add-user', protect, authorize('president'), async (req, res) => {
   try {
     const { email, role } = req.body;
@@ -106,7 +116,7 @@ router.post('/:id/add-user', protect, authorize('president'), async (req, res) =
     res.status(500).json({ message: err.message });
   }
 });
-
+             
 router.delete('/:id/remove-user/:userId', protect, authorize('president'), async (req, res) => {
   try {
     const fund = await Fund.findById(req.params.id);

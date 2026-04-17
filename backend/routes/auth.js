@@ -32,7 +32,24 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+// Check if setup is done
+router.get('/setup-status', async (req, res) => {
+  const admin = await User.findOne({ role: 'admin' });
+  res.json({ setupDone: !!admin });
+});
 
+// Create super admin (only works if no admin exists)
+router.post('/setup', async (req, res) => {
+  try {
+    const existing = await User.findOne({ role: 'admin' });
+    if (existing) return res.status(403).json({ message: 'Setup already complete.' });
+    const { name, email, password } = req.body;
+    const user = await User.create({ name, email, password, role: 'admin' });
+    res.status(201).json({ message: 'Super admin created.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 router.get('/me', protect, async (req, res) => {
   const user = await User.findById(req.user._id).populate('fund', 'name totalBalance description');
   res.json(user);

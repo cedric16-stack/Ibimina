@@ -10,6 +10,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.get('/test', (req, res) => res.json({ version: 'v2', status: 'latest' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Preload all models first

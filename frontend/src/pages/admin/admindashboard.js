@@ -15,7 +15,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actLoading, setActLoading] = useState(false);
   const [showCreateFund, setShowCreateFund] = useState(false);
-  const [fundForm, setFundForm] = useState({ name: '', presidentEmail: '', presidentName: '', presidentPhone: '', presidentPassword: '' });
+  const [fundForm, setFundForm] = useState({ name: '', presidentEmail: '', presidentName: '', presidentPhone: '' });
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
   const [creating, setCreating] = useState(false);
@@ -369,11 +369,7 @@ const AdminDashboard = () => {
           <input className="form-input" placeholder="+250 7XX XXX XXX"
             value={fundForm.presidentPhone} onChange={e => setFundForm({ ...fundForm, presidentPhone: e.target.value })} />
         </div>
-        <div className="form-group">
-          <label className="form-label">President Password</label>
-          <input className="form-input" placeholder="Default: ibimina123"
-            value={fundForm.presidentPassword} onChange={e => setFundForm({ ...fundForm, presidentPassword: e.target.value })} />
-        </div>
+        
       </div>
       <div className="modal-actions">
         <button type="button" className="btn btn-outline" onClick={() => setShowCreateFund(false)}>Cancel</button>

@@ -8,7 +8,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: ['https://ibimina-inky.vercel.app', 'http://localhost:3000', 'http://localhost:5001'],
+  credentials: true
+}));
 app.use(express.json());
 app.get('/test', (req, res) => res.json({ version: 'v2', status: 'latest' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

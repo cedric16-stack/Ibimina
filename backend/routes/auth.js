@@ -51,6 +51,17 @@ router.post('/setup', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+router.post('/fund-request', async (req, res) => {
+  try {
+    const { fundName, email, phone, businessType } = req.body;
+    // Store as a pending request — you can use a simple collection
+    const FundRequest = require('../models/fundrequest');
+    await FundRequest.create({ fundName, email, phone, businessType });
+    res.status(201).json({ message: 'Request submitted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 router.get('/me', protect, async (req, res) => {
   const user = await User.findById(req.user._id).populate('fund', 'name totalBalance description');
   res.json(user);

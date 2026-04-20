@@ -7,7 +7,6 @@ import PresidentDashboard from './pages/president/presidentdashboard';
 import SecretaryDashboard from './pages/secretary/secretarydashboard';
 import MemberDashboard from './pages/member/memberdashboard';
 import SetupPage from './pages/Setup';
-i//import PresidentSetup from './pages/PresidentSetup';
 import LandingPage from './pages/LandingPage';
 import GetStarted from './pages/GetStarted';
 import './index.css';
@@ -57,8 +56,7 @@ const AppRoutes = () => {
       <Route path="/" element={user ? <Navigate to={getHome(user.role)} replace /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/setup" element={<SetupPage />} /> 
-      //<Route path="/president/setup" element={<PresidentSetup />} />
-      //<Route path="/president/login" element={<LoginPage />} />
+    
     </Routes>
   );
 };

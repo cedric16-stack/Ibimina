@@ -22,8 +22,6 @@ const AdminDashboard = () => {
   const [reqLoading, setReqLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(null);
-  const [requests, setRequests] = useState([]);
-  const [reqLoading, setReqLoading] = useState(false);
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {

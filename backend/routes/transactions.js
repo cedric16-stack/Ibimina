@@ -85,24 +85,19 @@ router.post('/loan-request', protect, async (req, res) => {
     const { amount, reason, loanDuration } = req.body;
     const user = await User.findById(req.user._id);
     if (!user.fund) return res.status(400).json({ message: 'Not in a fund' });
+    if (user.totalContributed <= 0) return res.status(400).json({ message: 'You must have active savings to be eligible for a loan' });
 
-    // Check eligibility - must have savings
-    if (user.totalContributed <= 0) {
-      return res.status(400).json({ message: 'You must have active savings to be eligible for a loan' });
-    }
+    const fund = await Fund.findById(user.fund);
+    const maxLoanPercent = fund?.maxLoanPercent || 75;
+    const interestRate = fund?.interestRate || 10;
+    const maxLoanDuration = fund?.maxLoanDuration || 6;
+    const maxLoan = user.totalContributed * (maxLoanPercent / 100);
 
-    // Max loan = 75% of total savings
-    const maxLoan = user.totalContributed * 0.75;
-    if (amount > maxLoan) {
-      return res.status(400).json({ message: `Maximum loan amount is 75% of your savings: ${maxLoan.toLocaleString()} RWF` });
-    }
+    if (amount > maxLoan) return res.status(400).json({ message: `Maximum loan is ${maxLoanPercent}% of your savings: ${maxLoan.toLocaleString()} RWF` });
+    if (loanDuration > maxLoanDuration) return res.status(400).json({ message: `Maximum loan duration is ${maxLoanDuration} months` });
 
-    // Interest rate: 5% under 3 months, 10% over 3 months
-    const interestRate = loanDuration < 3 ? 5 : 10;
     const interestAmount = (amount * interestRate) / 100;
     const totalRepayable = amount + interestAmount;
-
-    // Due date
     const dueDate = new Date();
     dueDate.setMonth(dueDate.getMonth() + loanDuration);
 

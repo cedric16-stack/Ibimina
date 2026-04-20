@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import { StatCard, Modal, Alert, ActivityFeed, Badge, LoadingPage } from '../../components/shared';
 import { getFunds, createFund, deleteFund, getAllUsers, getGlobalActivities } from '../../utils/api';
+import { getFunds, createFund, deleteFund, getAllUsers, getGlobalActivities, getFundTransactions } from '../../utils/api';
 import {
   LayoutDashboard, Folder, Users, Activity,
   Plus, Trash2, RefreshCw, DollarSign, TrendingUp, Shield, ClipboardList

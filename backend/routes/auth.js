@@ -3,8 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const Activity = require('../models/activity');
-const { protect } = require('../middleware/auth');
-
+const { protect, authorize } = require('../middleware/auth');
 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET || 'ibimina_secret_2024', { expiresIn: '30d' });
 const { v4: uuidv4 } = require('uuid');
 

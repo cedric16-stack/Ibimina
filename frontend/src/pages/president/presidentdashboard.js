@@ -11,6 +11,13 @@ import { getMyFund, updateFundDescription, addUserToFund, removeUserFromFund,
 const PresidentDashboard = () => {
   const [tab, setTab] = useState('overview');
   const [fund, setFund] = useState(null);
+  const [termsForm, setTermsForm] = useState({ 
+    termsAndConditions: '', 
+    loanDefaultRules: '',
+    interestRate: 10,
+    maxLoanPercent: 75,
+    maxLoanDuration: 6
+  });
   const [savingTerms, setSavingTerms] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [activities, setActivities] = useState([]);

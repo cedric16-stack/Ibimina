@@ -11,7 +11,13 @@ import { getMyFund, updateFundDescription, addUserToFund, removeUserFromFund,
 const PresidentDashboard = () => {
   const [tab, setTab] = useState('overview');
   const [fund, setFund] = useState(null);
-  const [termsForm, setTermsForm] = useState({ termsAndConditions: '', loanDefaultRules: '' });
+  const [termsForm, setTermsForm] = useState({ 
+    termsAndConditions: '', 
+    loanDefaultRules: '',
+    interestRate: 10,
+    maxLoanPercent: 75,
+    maxLoanDuration: 6
+  });
   const [savingTerms, setSavingTerms] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -25,13 +31,7 @@ const PresidentDashboard = () => {
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
-  const [termsForm, setTermsForm] = useState({ 
-  termsAndConditions: '', 
-  loanDefaultRules: '',
-  interestRate: 10,
-  maxLoanPercent: 75,
-  maxLoanDuration: 6
-});
+
   const fetchFund = useCallback(async () => {
     setLoading(true);
     try {
@@ -39,12 +39,12 @@ const PresidentDashboard = () => {
       setFund(res.data);
       setDesc(res.data.description || '');
       setTermsForm({
-  termsAndConditions: res.data.termsAndConditions || '',
-  loanDefaultRules: res.data.loanDefaultRules || '',
-  interestRate: res.data.interestRate || 10,
-  maxLoanPercent: res.data.maxLoanPercent || 75,
-  maxLoanDuration: res.data.maxLoanDuration || 6
-});
+        termsAndConditions: res.data.termsAndConditions || '',
+        loanDefaultRules: res.data.loanDefaultRules || '',
+        interestRate: res.data.interestRate || 10,
+        maxLoanPercent: res.data.maxLoanPercent || 75,
+        maxLoanDuration: res.data.maxLoanDuration || 6
+      });
     } catch (e) {}
     setLoading(false);
   }, []);
@@ -237,7 +237,6 @@ const PresidentDashboard = () => {
             </div>
           )}
 
-          {/* Overview Tab */}
           {tab === 'overview' && (
             <>
               <div className="stats-grid">
@@ -276,7 +275,6 @@ const PresidentDashboard = () => {
             </>
           )}
 
-          {/* Members Tab */}
           {tab === 'members' && (
             <div className="card">
               {allMembers.length === 0 ? (
@@ -337,7 +335,6 @@ const PresidentDashboard = () => {
             </div>
           )}
 
-          {/* Loan Requests Tab */}
           {tab === 'withdrawals' && (
             <div>
               {pendingWithdrawals.length > 0 && (
@@ -422,7 +419,6 @@ const PresidentDashboard = () => {
             </div>
           )}
 
-          {/* Transactions Tab */}
           {tab === 'transactions' && (
             <div className="card">
               {txLoading ? <LoadingPage /> : (
@@ -458,7 +454,6 @@ const PresidentDashboard = () => {
             </div>
           )}
 
-          {/* Activities Tab */}
           {tab === 'activities' && (
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -471,7 +466,6 @@ const PresidentDashboard = () => {
             </div>
           )}
 
-          {/* Terms Tab */}
           {tab === 'terms' && (
             <div className="grid-2">
               <div className="card">
@@ -495,26 +489,26 @@ const PresidentDashboard = () => {
                     onChange={e => setTermsForm({ ...termsForm, loanDefaultRules: e.target.value })} />
                 </div>
                 <div className="form-group">
-  <label className="form-label">Interest Rate (%)</label>
-  <input className="form-input" type="number" min="1" max="100"
-    placeholder="e.g. 10"
-    value={termsForm.interestRate}
-    onChange={e => setTermsForm({ ...termsForm, interestRate: Number(e.target.value) })} />
-</div>
-<div className="form-group">
-  <label className="form-label">Max Loan (% of savings)</label>
-  <input className="form-input" type="number" min="1" max="100"
-    placeholder="e.g. 75"
-    value={termsForm.maxLoanPercent}
-    onChange={e => setTermsForm({ ...termsForm, maxLoanPercent: Number(e.target.value) })} />
-</div>
-<div className="form-group">
-  <label className="form-label">Max Loan Duration (months)</label>
-  <select className="form-select" value={termsForm.loanDurationOptions?.length || 6}
-    onChange={e => setTermsForm({ ...termsForm, loanDurationOptions: Array.from({length: Number(e.target.value)}, (_,i) => i+1) })}>
-    {[3,6,9,12].map(n => <option key={n} value={n}>{n} months max</option>)}
-  </select>
-</div>
+                  <label className="form-label">Interest Rate (%)</label>
+                  <input className="form-input" type="number" min="1" max="100"
+                    placeholder="e.g. 10"
+                    value={termsForm.interestRate}
+                    onChange={e => setTermsForm({ ...termsForm, interestRate: Number(e.target.value) })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Max Loan (% of savings)</label>
+                  <input className="form-input" type="number" min="1" max="100"
+                    placeholder="e.g. 75"
+                    value={termsForm.maxLoanPercent}
+                    onChange={e => setTermsForm({ ...termsForm, maxLoanPercent: Number(e.target.value) })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Max Loan Duration (months)</label>
+                  <select className="form-select" value={termsForm.loanDurationOptions?.length || 6}
+                    onChange={e => setTermsForm({ ...termsForm, loanDurationOptions: Array.from({length: Number(e.target.value)}, (_,i) => i+1) })}>
+                    {[3,6,9,12].map(n => <option key={n} value={n}>{n} months max</option>)}
+                  </select>
+                </div>
                 <button className="btn btn-primary" onClick={handleSaveTerms} disabled={savingTerms}
                   style={{ width: '100%', justifyContent: 'center' }}>
                   {savingTerms ? 'Saving...' : <><FileText size={15} /> Save Terms</>}
@@ -556,7 +550,6 @@ const PresidentDashboard = () => {
         </div>
       </div>
 
-      {/* Add User Modal */}
       {showAddUser && (
         <Modal
           title="Add Member or Secretary"
@@ -609,7 +602,6 @@ const PresidentDashboard = () => {
         </Modal>
       )}
 
-      {/* Edit Description Modal */}
       {showEditDesc && (
         <Modal
           title="Fund Description"

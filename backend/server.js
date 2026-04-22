@@ -9,7 +9,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: ['https://ibimina-inky.vercel.app', 'http://localhost:3000', 'http://localhost:5001'],
+  origin: ['https://ibimina-inky.vercel.app', 'https://ibimina-zeta.vercel.app', 'http://localhost:3000', 'http://localhost:5001'],
   credentials: true
 }));
 app.use(express.json());
